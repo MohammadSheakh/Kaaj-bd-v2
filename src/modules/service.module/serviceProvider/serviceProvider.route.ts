@@ -114,6 +114,16 @@ router.route('/profile/:id').get(
   controller.getProfileDetails
 );
 
+/*------------------------------🆕
+  as per shadat vai's request .. 
+
+  we need to show 
+
+  -------------------------------*/
+router.route('/profile-v2/:id').get(
+  auth(TRole.user),
+  controller.getProfileDetailsV2
+);
 
 
 

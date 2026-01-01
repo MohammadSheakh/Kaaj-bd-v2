@@ -78,9 +78,14 @@ export class ServiceBookingService extends GenericService<
   }
   
 
-  //---------------------------------------
-  // User | Book A Service
-  //---------------------------------------
+//---------------------------------------
+// User | Book A Service
+//---------------------------------------
+//-------------------------------- 💎✨🔍 -> V4 Found
+//  this version is actually as per khairul vai's instruction
+// Nazil vai wants different thing ..
+// as per nazil vai, nazil vai wants admin percentage of total price
+//--------------------------------
   async createV3(data:ICreateServiceBooking , user: IUser, userTimeZone:string) : Promise<IServiceBooking> {
     
     // check For Provider .. ServiceProvider details exist or not
@@ -146,6 +151,121 @@ export class ServiceBookingService extends GenericService<
       paymentStatus: TPaymentStatus.unpaid,
       paymentMethod: null,
       adminPercentageOfStartPrice: serviceProviderData.startPrice * (parseInt(adminPercentage?.percentage) / 100)
+    }
+
+    // console.log('serviceBookingDTO', serviceBookingDTO);
+
+    const createdServiceBooking : IServiceBooking = await ServiceBooking.create(serviceBookingDTO); 
+
+    /**
+     * Lets create userProviderRelationships .. 
+     * later we need to create this relationship with bull mq or event emitter
+     * for better performance
+     */
+    const relationshipExists = await UserProvider.findOne({
+      userId: user.userId,
+      providerId: data.providerId
+    });
+
+    if(!relationshipExists) {
+      await UserProvider.create({
+        userId: user.userId,
+        providerId: data.providerId
+      });
+    }
+
+    /**********
+     * 🥇
+     * Lets send notification to provider that a user has booked a service
+     * TODO : MUST : address e language er chinta korte hobe 
+     * ******* */
+    await enqueueWebNotification(
+      /*${user.userName} An User booked your service*/ `A user has booked your service for ${dateForNotification} ${serviceBookingDTO.bookingDateTime} in ${serviceBookingDTO.address.en}.`,
+      user.userId, // senderId
+      serviceBookingDTO.providerId, // receiverId
+      TRole.provider, // receiverRole
+      TNotificationType.serviceBooking, // type
+      createdServiceBooking._id, // idOfType
+      null, // linkFor // queryParamKey
+      null, // linkId // queryParamValue
+    );
+
+    return createdServiceBooking;
+  }
+
+  async createV4(data:ICreateServiceBooking , user: IUser, userTimeZone:string) : Promise<IServiceBooking> {
+    
+    // check For Provider .. ServiceProvider details exist or not
+    const serviceProviderData = await ServiceProvider.findOne({
+      providerId: data.providerId
+    });
+
+    const adminPercentage:IAdminPercentage = await AdminPercentage.findOne({
+      isDeleted: false,
+    });
+
+    if(!adminPercentage){
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'No Admin Percentage Found');
+    }
+
+    if (!serviceProviderData) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'No service provider details found for selected service');
+    }
+
+    /********
+     * 📝
+     * 
+     * ****** */
+    let dateForNotification
+
+    if(data.bookingDateTime) {
+        const scheduleDate = new Date(data.bookingDateTime);
+        
+        data.bookingDateTime = toUTCTime(data.bookingDateTime, userTimeZone);
+
+        if(isNaN(scheduleDate.getTime())) {
+            // throw new Error('Invalid date or time format');
+            throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid date or time format');
+        }
+        dateForNotification = toLocalTime(data.bookingDateTime, userTimeZone);
+    }
+
+    
+
+    // Translate multiple properties dynamically
+    const [addressObj] : [IServiceBooking['address']]  = await Promise.all([
+      buildTranslatedField(data.address as string)
+    ]);
+
+    //----------------------------------------------
+    // check in this booking time is available or not .. 
+    //------------------------------------  we create another endpoint for that 
+
+  
+    //⚠️ TODO : need Interface Segregation Principle (ISP)
+    const serviceBookingDTO:IServiceBooking = {
+      address: addressObj,
+      bookingDateTime: new Date(data.bookingDateTime),
+      bookingMonth: new Date().getMonth() + 1,
+      lat: data.lat,
+      long: data.long,
+      providerId: data.providerId,
+      userId : user.userId,
+      providerDetailsId : serviceProviderData._id,
+      status : TBookingStatus.pending,
+      startPrice: serviceProviderData.startPrice,
+      paymentTransactionId : null,
+      paymentStatus: TPaymentStatus.unpaid,
+      paymentMethod: null,
+      /*---------------
+      
+      this is actually admin percentage .. not for start price .. we need this .. because later we need to 
+      calculate admin earning from total price ... not from start price only
+      
+      ----------------*/
+      // adminPercentageOfStartPrice: serviceProviderData.startPrice * (parseInt(adminPercentage?.percentage) / 100)
+      adminPercentageOfStartPrice: adminPercentage?.percentage,
+    
     }
 
     // console.log('serviceBookingDTO', serviceBookingDTO);

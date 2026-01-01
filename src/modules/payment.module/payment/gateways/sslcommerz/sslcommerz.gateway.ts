@@ -108,7 +108,6 @@ export class SSLGateway implements PaymentGateway {
             // we dont need to create any booking here .. we can update totalCost
             await isBookingExist.save();
 
-             
         });
         
         session.endSession();

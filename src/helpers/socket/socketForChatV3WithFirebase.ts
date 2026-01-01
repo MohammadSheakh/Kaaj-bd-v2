@@ -859,7 +859,7 @@ export class SocketService {
 
       const conversationId = conversationData.conversationId;
       
-      console.log(`User ${userProfile.name} joining chat ${conversationData.conversationId}`);
+      console.log(`User ${userProfile.name} joining chat ${conversationData.conversationId} 🎯✔️🎯🎯🎯🎯🎯`);
 
       // Join socket.io room
       socket.join(conversationId);

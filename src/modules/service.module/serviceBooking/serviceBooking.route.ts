@@ -168,10 +168,18 @@ router.route('/user-details/:id').get(
   controller.getByIdV2
 );
 
+// 💎✨🔍 -> V3 Found -- because as per shahadat vai .. provider hishabe ekta user er details dekhar shomoy .. call kora jabe kina 
+// sheta depend korbe ei user er shathe provider er kono pending booking ache kina .
 router.route('/user-details-v2/:id').get(
   auth(TRole.provider),
   IsProviderRejected(),
   controller.getBookingDetailsWithUserDetails
+);
+
+router.route('/user-details-v3/:id').get(
+  auth(TRole.provider),
+  IsProviderRejected(),
+  controller.getBookingDetailsWithUserDetailsV3
 );
 
 //-------------------------------------------

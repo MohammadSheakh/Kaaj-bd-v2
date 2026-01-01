@@ -69,6 +69,50 @@ export class ServiceBookingController extends GenericController<
     });
   });
 
+  // as per shahadat vai .. 
+  getBookingDetailsWithUserDetailsV3 = catchAsync(async (req: Request, res: Response) => {
+    const id = req.params.id;
+
+    const providerId = req.user.userId; 
+
+    const result = await ServiceBooking.findById(id)
+      .select('startPrice address bookingDateTime status')
+      .populate([
+        {
+          path: 'userId',
+          select: 'phoneNumber name profileImage role', //🆕phoneNumber  // name profileImage role
+          populate: { path: 'profileId', select: 'gender location' }
+        }
+      ]).lean();
+
+    console.log("Result : ⚡⚡ ", result);
+
+    const pendingFound:IServiceBooking = await ServiceBooking.findOne({
+      providerId : providerId,
+      userId : result.userId._id,
+      status : TBookingStatus.pending,
+      isDeleted : false,
+    })
+
+    console.log("Pending Found : ⚡⚡ ", pendingFound);
+
+    let pendingFoundFlag = false;
+    if(pendingFound){
+      pendingFoundFlag = true;
+    }
+    
+    const resp = {
+      ...result,
+      pendingFoundFlag
+    }
+
+    sendResponse(res, {
+      code: StatusCodes.OK,
+      data: resp,
+      message: `${this.modelName} retrieved successfully`,
+    });
+  });
+
   getAllWithPaginationV2 = catchAsync(async (req: Request, res: Response) => {
     //const filters = pick(req.query, ['_id', 'title']); // now this comes from middleware in router
     const filters =  omit(req.query, ['sortBy', 'limit', 'page', 'populate']);
@@ -77,6 +121,8 @@ export class ServiceBookingController extends GenericController<
     // ✅ Default values
     let populateOptions: (string | { path: string; select: string }[]) = [];
     let select = '-isDeleted -createdAt -updatedAt -__v';
+
+    options.sortBy = options.sortBy || '-createdAt';
 
     options.limit = 3000;
 
@@ -109,6 +155,7 @@ export class ServiceBookingController extends GenericController<
     let populateOptions: (string | { path: string; select: string }[]) = [];
     let select = '-isDeleted -createdAt -updatedAt -__v';
 
+    options.sortBy = options.sortBy || '-createdAt';
     
 
     // ✅ If middleware provided overrides → use them
@@ -135,7 +182,8 @@ export class ServiceBookingController extends GenericController<
     const userTimeZone = req.header('X-Time-Zone') || 'Asia/Dhaka'; //TODO: Timezone must from env file
     const data = req.body as ICreateServiceBooking;
 
-    const result = await this.serviceBookingService.createV3(data, req.user as IUser, userTimeZone);
+    // const result = await this.serviceBookingService.createV3(data, req.user as IUser, userTimeZone);
+    const result = await this.serviceBookingService.createV4(data, req.user as IUser, userTimeZone);
 
     sendResponse(res, {
     code: StatusCodes.OK,

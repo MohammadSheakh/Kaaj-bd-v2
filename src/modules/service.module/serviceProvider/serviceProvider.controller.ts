@@ -26,6 +26,9 @@ import omit from '../../../shared/omit';
 import pick from '../../../shared/pick';
 import { ProvidersLocation } from '../location/location.model';
 import { ILocation } from '../location/location.interface';
+import { ServiceBooking } from '../serviceBooking/serviceBooking.model';
+import { IServiceBooking } from '../serviceBooking/serviceBooking.interface';
+import { TBookingStatus } from '../serviceBooking/serviceBooking.constant';
 
 //-----------------------------
 // ServiceProvider means Service Provider Details
@@ -493,6 +496,65 @@ export class ServiceProviderController extends GenericController<
       ...result,
       ...userProfileInfo,
       ...userInfo
+    }
+
+    sendResponse(res, {
+      code: StatusCodes.OK,
+      data: resp,
+      message: `Profile Details retrieved successfully`,
+      success: true,
+    });
+  })
+
+  /*------------------------------ 🆕
+  as per shadat vai's request .. 
+
+  we need to show 
+
+  -------------------------------*/
+  getProfileDetailsV2 = catchAsync(async(req: Request, res: Response) => {
+
+    const userId = (req.user as IUser).userId; // as we want to know 
+    // this provider have any pending request with this userId 
+    // if any pending request found we return false
+
+    const id = req.params.id;
+
+    const result : IServiceProvider = await ServiceProvider
+    .findById(id).select(defaultExcludes).populate({
+      path: 'serviceCategoryId',
+      select: 'name'
+    }).lean();
+  
+    const [ userProfileInfo, userInfo ] = await Promise.all([
+      
+      UserProfile.findOne({
+        userId: result.providerId
+      }).select('gender dob location').lean(),
+
+      User.findById(result.providerId).select('name phoneNumber profileImage').lean()
+    ])
+
+
+    const pendingFound:IServiceBooking = await ServiceBooking.findOne({
+      providerId : result.providerId,
+      userId : userId,
+      status : TBookingStatus.pending,
+      isDeleted : false,
+    })
+
+    console.log("Pending Found : ⚡⚡ ", pendingFound);
+
+    let pendingFoundFlag = false;
+    if(pendingFound){
+      pendingFoundFlag = true;
+    }
+
+    const resp = {
+      ...result,
+      ...userProfileInfo,
+      ...userInfo,
+      pendingFoundFlag
     }
 
     sendResponse(res, {
