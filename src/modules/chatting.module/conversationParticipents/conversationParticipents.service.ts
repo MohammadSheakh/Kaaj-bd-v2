@@ -192,7 +192,7 @@ export class ConversationParticipentsService extends GenericService<
     
     paginatedResults.results.forEach(participant => {
       
-      console.log("conversationParticipents.service.ts -> participant ::", participant);
+      // console.log("conversationParticipents.service.ts -> participant ::", participant);
       
       const userId = participant.userId._id.toString();
       

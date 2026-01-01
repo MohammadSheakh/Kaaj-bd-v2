@@ -435,7 +435,7 @@ const socketForChat_V2_Claude = (io: Server) => {
 
       socket.on('send-new-message', async (messageData: MessageData, callback) => {
 
-        console.log("requested user Id 🟡🟡",  userId)
+        // console.log("requested user Id 🟡🟡",  userId)
         try {
           console.log('New message received:', messageData);
 

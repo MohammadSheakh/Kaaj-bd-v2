@@ -107,6 +107,15 @@ export const sendPushNotification = async (
     }
  * ********* */
 
+export const isValidUrl = (string: string): boolean => {
+  try {
+    new URL(string);
+    return true;
+  } catch (_) {
+    return false;
+  }
+};
+
 export const sendPushNotificationV2 = async (
   fcmToken: string,
   messageData: IMessageToEmmit | string, // Can accept object or stringified JSON
@@ -116,12 +125,48 @@ export const sendPushNotificationV2 = async (
     // Initialize Firebase Admin SDK only once
     initializeFirebase();
 
-    const {message, notificationTitle} = await buildFCMMessageV2(messageData as IMessageToEmmit , fcmToken);
+    console.log(":sendPushNotificationV2: 🫸🛎️");
+    // {
+    //   conversationId: '695511b71e6fbeebb69bad0a',
+    //   text: 'test g',
+    //   _id: new ObjectId('69562b8fc5ed52a80a20f551'),
+    //   senderId: '6954e63dd892b31e02c2bea9',
+    //   name: 'Md. Shadat Hossain',
+    //   image: {
+    //     imageUrl: '/uploads/users/user.png',
+    //     _id: new ObjectId('6954e63dd892b31e02c2bea8')
+    //   },
+    //   createdAt: 2026-01-01T08:08:47.775Z
+    // }
+
+
+// Parse messageData if it's a string
+    let parsedMessageData = typeof messageData === 'string'
+      ? JSON.parse(messageData)
+      : { ...messageData };
+
+    // Normalize imageUrl if present
+    if (
+      parsedMessageData?.image &&
+      typeof parsedMessageData.image === 'object' &&
+      parsedMessageData.image.imageUrl
+    ) {
+      const { imageUrl } = parsedMessageData.image;
+      if (!isValidUrl(imageUrl)) {
+        parsedMessageData.image.imageUrl = 'https://newsheakh6737.sobhoy.com/uploads/users/user.png';
+      }
+    }
+
+
+    // const {message, notificationTitle} = await buildFCMMessageV2(messageData as IMessageToEmmit , fcmToken);
+
+    const {message, notificationTitle} = await buildFCMMessageV2(parsedMessageData as IMessageToEmmit , fcmToken);
+
 
     // Send the notification
     const response = await admin.messaging().send(message);
 
-    console.log('👉🔔👈 Push Notification V2 sent successfully:', response);
+    // console.log('👉🔔👈 Push Notification V2 sent successfully:', response);
     
     // console.log('✅ Push notification sent successfully:', {
     //   receiverId,

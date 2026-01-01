@@ -963,9 +963,9 @@ export class SocketService {
 
     socket.on('send-new-message', async (messageData: MessageData, callback) => {
 
-      console.log("requested user Id 🟡🟡",  userId)
+      // console.log("requested user Id 🟡🟡",  userId)
       try {
-        console.log('New message received:', messageData);
+        // console.log('New message received:', messageData);
 
         if (!messageData.conversationId || !messageData.text?.trim()) {
           const error = 'Chat ID and message content are required';
@@ -1073,7 +1073,9 @@ export class SocketService {
             console.log(`✅ User ${participantId} is in room, message already sent 2️⃣`);
             
             // Send conversation list update to their personal room
-            this.emitToUser(
+            // this.emitToUser(
+            this.emitToUserForCalling(
+              
               participantId,
               `conversation-list-updated::${participantId}`,
               {
@@ -1092,6 +1094,29 @@ export class SocketService {
                 _conversationId: updatedConversation?._id,
               }
             )
+
+            /**---------------------------
+             * 
+             * This part is added as Per nazil vai's request ... for Kaz BD
+             * 
+             * ---------------------------
+             */
+            // const userDevices:IUserDevices[] = await UserDevices.find({
+            //   userId: participantId, 
+            // });
+            // if(!userDevices){
+            //   console.log(`⚠️ No FCM token found for user ${participantId}`);
+            //   // TODO : MUST : need to think how to handle this case
+            // }
+
+            // // fcmToken,deviceType,deviceName,lastActive,
+            // for(const userDevice of userDevices){
+            //   await sendPushNotificationV2(
+            //     userDevice.fcmToken,
+            //     messageToEmit,
+            //     participantId
+            //   );
+            // }
             
           } else if (isOnline && !isInConversationRoom) {
             // ⚠️ User is online but NOT in this conversation room
@@ -1129,22 +1154,22 @@ export class SocketService {
               _conversationId: updatedConversation?._id,
             });
 
-            const userDevices:IUserDevices[] = await UserDevices.find({
-              userId: participantId, 
-            });
-            if(!userDevices){
-              console.log(`⚠️ No FCM token found for user ${participantId}`);
-              // TODO : MUST : need to think how to handle this case
-            }
+            // const userDevices:IUserDevices[] = await UserDevices.find({
+            //   userId: participantId, 
+            // });
+            // if(!userDevices){
+            //   console.log(`⚠️ No FCM token found for user ${participantId}`);
+            //   // TODO : MUST : need to think how to handle this case
+            // }
 
-            // fcmToken,deviceType,deviceName,lastActive,
-            for(const userDevice of userDevices){
-              await sendPushNotificationV2(
-                userDevice.fcmToken,
-                messageToEmit,
-                participantId
-              );
-            }
+            // // fcmToken,deviceType,deviceName,lastActive,
+            // for(const userDevice of userDevices){
+            //   await sendPushNotificationV2(
+            //     userDevice.fcmToken,
+            //     messageToEmit,
+            //     participantId
+            //   );
+            // }
 
           } else {
             // 🔴 User is OFFLINE - send push notification
@@ -1329,6 +1354,14 @@ export class SocketService {
 
 
     return false;
+  }
+
+  public async emitToUserForSendingMessage(userId: string, event: string, data: MessageData): Promise<boolean> {
+    if (!this.io) return false;
+    
+    this.io.to(userId).emit(event, data);
+    return true;
+    
   }
 
   // This method is same as emitToUser but its not have any push notification usecases .. as Toky vai is not develop push notification for calling
