@@ -668,7 +668,7 @@ export class ServiceBookingController extends GenericController<
       console.log("role ->>> for /with-costs-summary", loggedInUser.role);
       review = await Review.findOne({
         serviceBookingId: req.params.id
-      }).select(defaultExcludes).populate({
+      }).select("-isDeleted -updatedAt -__v").populate({
         path: 'userId',
         select: 'name profileImage'
       })

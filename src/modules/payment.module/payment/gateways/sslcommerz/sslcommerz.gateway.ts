@@ -63,6 +63,13 @@ export class SSLGateway implements PaymentGateway {
 
             console.log('isBookingExist :: ', isBookingExist);
 
+            if(isBookingExist?.status != TBookingStatus.paymentRequest){
+                throw new ApiError(StatusCodes.BAD_REQUEST, 'You can not pay for this booking as provider is not requested you for payment');
+            }
+
+            if(isBookingExist.paymentTransactionId != null){
+                throw new ApiError(StatusCodes.BAD_REQUEST, 'Payment already done for this booking.');
+            }
 
             //TODO : booking er status check dite hobe 
             // TODO : booking er user er shathe .. je payment korte chacche ..
