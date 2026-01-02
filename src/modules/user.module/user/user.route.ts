@@ -118,6 +118,12 @@ router.route('/profile').get(
 );
 
 
+router.route('/notification-test').get(
+  auth(TRole.common), // any logged in user can see any user profile ..
+  controller.sendTestingNotificationForAdmin
+);
+
+
 //--------------------------------- suplify
 // Admin | Get Profile Information by Id  to approve doctor / specialist 
 //---------------------------------

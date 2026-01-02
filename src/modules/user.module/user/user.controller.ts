@@ -15,6 +15,8 @@ import { TokenService } from '../../token/token.service';
 import { AuthService } from '../../auth/auth.service';
 import ApiError from '../../../errors/ApiError';
 import { TRole } from '../../../middlewares/roles';
+import { enqueueWebNotification } from '../../../services/notification.service';
+import { TNotificationType } from '../../notification/notification.constants';
 
 const userService = new UserService();
 
@@ -65,6 +67,27 @@ export class UserController extends GenericController<
       message: `${
         payload.role === 'admin' ? 'Admin' : 'Super Admin'
       } created successfully`,
+    });
+  });
+
+  sendTestingNotificationForAdmin = catchAsync(async (req: Request, res: Response) => {
+    const id = (req.user as IUser).userId;
+
+    await enqueueWebNotification(
+      `Test notification send to admin from user id : ${id} : ${req.user.userName}`,
+      id, // senderId
+      null, // receiverId
+      TRole.admin, // receiverRole
+      TNotificationType.payment, // type
+      null, // idOfType
+      null, // linkFor
+      null // linkId
+    );
+
+    sendResponse(res, {
+      code: StatusCodes.OK,
+      data: null,
+      message: `${this.modelName} retrieved successfully`,
     });
   });
 
