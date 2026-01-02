@@ -7,6 +7,9 @@ import { redisPubClient } from "../redis/redis";
 import { TRole } from "../../middlewares/roles";
 import { buildTranslatedField } from "../../utils/buildTranslatedField";
 import { socketService } from "../socket/socketForChatV3WithFirebase";
+import { IUserDevices } from "../../modules/user.module/userDevices/userDevices.interface";
+import { UserDevices } from "../../modules/user.module/userDevices/userDevices.model";
+import { sendPushNotificationV2 } from "../../utils/firebaseUtils";
 
 // Create Queue
 export const scheduleQueue = new Queue("scheduleQueue", {
@@ -141,7 +144,9 @@ interface IScheduleJobForNotification {
 // enqueueWebNotification() this function is called when we need to send notification
 // 🔎 search for enqueueWebNotification to see details   
 
-export const startNotificationWorker = () => {
+// -------------- actually this is the main version .. now we bug fix in
+// -------------- the startNotificationWorker version .. 
+export const startNotificationWorkerV3 = () => {
   const worker = new Worker(
     "notificationQueue-kajbd",
     async (
@@ -250,6 +255,229 @@ export const startNotificationWorker = () => {
           } else {
             logger.info(`📴 User ${receiverId} is offline, notification saved in DB only`);
           }
+        }
+
+      } catch (err: any) {
+        console.log("⭕ error block hit  of notification worker", err)
+        errorLogger.error(
+          `❌ Notification job ${id} failed: ${err.message}`
+        );
+        throw err; // ensures retry/backoff
+      }
+    },
+    { connection: redisPubClient.options }
+  );
+  //@ts-ignore
+  worker.on("completed", (job) =>
+    logger.info(`✅ Notification job ${job.id} (${job.name}) completed`)
+  );
+  //@ts-ignore
+  worker.on("failed", (job, err) =>
+    errorLogger.error(`❌ Notification job ${job?.id} (${job?.name}) failed`, err)
+  );
+};
+
+
+export const startNotificationWorker = () => {
+  const worker = new Worker(
+    "notificationQueue-kajbd",
+    async (
+      job: IScheduleJobForNotification
+      // job : Job<INotification, any, NotificationJobName>
+    ) => {
+      // console.log("job.data testing startNotificationWorker::", job.data)
+      const { id, name, data } = job;
+      logger.info(`Processing notification job ${id} ⚡ ${name}`, data);
+
+      try {
+        // Translate multiple properties dynamically
+        const [titleObj] : [any]  = await Promise.all([
+          buildTranslatedField(data.title as string)
+        ]);
+
+        const notif = await Notification.create({
+          // title: data.title,
+          title: titleObj,
+          // subTitle: data.subTitle,
+          senderId: data.senderId,
+          receiverId: data.receiverId,
+          receiverRole: data.receiverRole,
+          type: data.type,
+          idOfType: data.idOfType,
+          linkFor: data.linkFor,
+          linkId: data.linkId,
+        });
+
+        // logger.info(`✅ Notification created for ${data.receiverRole} :: `, notif);
+        
+        let eventName;
+        let emitted;
+
+        // 🎨 GUIDE FOR FRONTEND .. if admin then listen for notification::admin event  
+        if(data.receiverRole == TRole.admin){
+          
+          eventName = `notification::admin`;
+
+          emitted = socketService.emitToRole(
+            data.receiverRole,
+            eventName,
+            {
+              title: data.title,
+              // subTitle: data.subTitle,
+              senderId: data.senderId,
+              receiverId: null,
+              receiverRole: data.receiverRole,
+              type: data.type,
+              idOfType: data.idOfType,
+              linkFor: data.linkFor,
+              linkId: data.linkId,
+            }
+          );
+
+          if (emitted) {
+            logger.info(`🔔 Real-time notification sent to ${data.receiverRole}`);
+          } else {
+            logger.info(`📴 ${data.receiverRole} is offline, notification saved in DB only`);
+          }
+
+        }else{
+        
+          const receiverId = data.receiverId.toString(); // Ensure it's a string
+          eventName = `notification::${receiverId}`;
+
+          /*----------------------------
+          // Try to emit to the user
+          emitted = await socketService.emitToUser(
+            receiverId,
+            eventName,
+            {
+              title: data.title,
+              // subTitle: data.subTitle,
+              senderId: data.senderId,
+              receiverId: data.receiverId,
+              receiverRole: data.receiverRole,
+              type: data.type,
+              idOfType: data.idOfType,
+              linkFor: data.linkFor,
+              linkId: data.linkId,
+            }
+          );
+          ----------------------------*/
+
+          /*---------------------------------
+
+          emitted = await socketService.emitToUserForCalling(
+            receiverId,
+            eventName,
+            {
+              title: data.title,
+              // subTitle: data.subTitle,
+              senderId: data.senderId,
+              receiverId: data.receiverId,
+              receiverRole: data.receiverRole,
+              type: data.type,
+              idOfType: data.idOfType,
+              linkFor: data.linkFor,
+              linkId: data.linkId,
+            }
+          );
+
+          if (emitted) {
+            logger.info(`🔔 Real-time notification sent to user ${receiverId}`);
+          } else {
+            logger.info(`📴 User ${receiverId} is offline, notification saved in DB only`);
+          }
+
+          ---------------------------------*/
+
+
+          const isOnline = await socketService.isUserOnline(receiverId); // current way need to test
+          
+          console.log("isOnline 🆕 ?", isOnline, " -- ", receiverId)
+  
+          if (isOnline) { // && !isInConversationRoom
+            // ⚠️ User is online but NOT in this conversation room
+            // Send both socket notification AND conversation list update
+            // console.log(`⚠️ User ${participantId} is online but not in room, sending notification 3️⃣`);
+            
+            // Send message notification to personal room
+            await socketService.emitToUserForCalling(
+            receiverId,
+            eventName,
+            {
+              title: data.title,
+              // subTitle: data.subTitle,
+              senderId: data.senderId,
+              receiverId: data.receiverId,
+              receiverRole: data.receiverRole,
+              type: data.type,
+              idOfType: data.idOfType,
+              linkFor: data.linkFor,
+              linkId: data.linkId,
+            }
+          );
+
+          try {
+              // --- previous line logic was for one device .. now we design a system where user can have multiple device
+  
+              const userDevices:IUserDevices[] = await UserDevices.find({
+                userId: receiverId, 
+              });
+              if(!userDevices){
+                console.log(`⚠️ No FCM token found for user ${receiverId}`);
+                // TODO : MUST : need to think how to handle this case
+              }
+  
+              // fcmToken,deviceType,deviceName,lastActive,
+              for(const userDevice of userDevices){
+                await sendPushNotificationV2(
+                  userDevice.fcmToken,
+                  {
+                    message : data.title,
+                    // image: userProfile?.profileImage, // may be we need to send this image
+                    // conversationId: conversationId,
+                  },
+                  receiverId
+                );
+              }
+  
+            } catch (error) {
+              console.error(`❌ Failed to send push notification to ${receiverId}: 7️⃣`, error);
+            }
+  
+          } else {
+            // 🔴 User is OFFLINE - send push notification
+            console.log(`🔴🆕 User ${receiverId} is offline, sending push notification 4️⃣`);
+            
+            try {
+              // --- previous line logic was for one device .. now we design a system where user can have multiple device
+  
+              const userDevices:IUserDevices[] = await UserDevices.find({
+                userId: receiverId, 
+              });
+              if(!userDevices){
+                console.log(`⚠️ No FCM token found for user ${receiverId}`);
+                // TODO : MUST : need to think how to handle this case
+              }
+  
+              // fcmToken,deviceType,deviceName,lastActive,
+              for(const userDevice of userDevices){
+                await sendPushNotificationV2(
+                  userDevice.fcmToken,
+                  {
+                    message : data.title,
+                    // image: userProfile?.profileImage, // may be we need to send this image
+                    // conversationId: conversationId,
+                  },
+                  receiverId
+                );
+              }
+  
+            } catch (error) {
+              console.error(`❌ Failed to send push notification to ${receiverId}: 7️⃣`, error);
+            }
+          }
+
         }
 
       } catch (err: any) {
