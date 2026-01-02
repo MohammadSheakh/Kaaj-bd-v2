@@ -1154,22 +1154,22 @@ export class SocketService {
               _conversationId: updatedConversation?._id,
             });
 
-            // const userDevices:IUserDevices[] = await UserDevices.find({
-            //   userId: participantId, 
-            // });
-            // if(!userDevices){
-            //   console.log(`⚠️ No FCM token found for user ${participantId}`);
-            //   // TODO : MUST : need to think how to handle this case
-            // }
+            const userDevices:IUserDevices[] = await UserDevices.find({
+              userId: participantId, 
+            });
+            if(!userDevices){
+              console.log(`⚠️ No FCM token found for user ${participantId}`);
+              // TODO : MUST : need to think how to handle this case
+            }
 
-            // // fcmToken,deviceType,deviceName,lastActive,
-            // for(const userDevice of userDevices){
-            //   await sendPushNotificationV2(
-            //     userDevice.fcmToken,
-            //     messageToEmit,
-            //     participantId
-            //   );
-            // }
+            // fcmToken,deviceType,deviceName,lastActive,
+            for(const userDevice of userDevices){
+              await sendPushNotificationV2(
+                userDevice.fcmToken,
+                messageToEmit,
+                participantId
+              );
+            }
 
           } else {
             // 🔴 User is OFFLINE - send push notification

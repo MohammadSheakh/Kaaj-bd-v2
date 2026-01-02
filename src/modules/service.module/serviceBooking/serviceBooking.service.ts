@@ -265,7 +265,6 @@ export class ServiceBookingService extends GenericService<
       ----------------*/
       // adminPercentageOfStartPrice: serviceProviderData.startPrice * (parseInt(adminPercentage?.percentage) / 100)
       adminPercentageOfStartPrice: adminPercentage?.percentage,
-    
     }
 
     // console.log('serviceBookingDTO', serviceBookingDTO);

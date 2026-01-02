@@ -208,6 +208,7 @@ export const startNotificationWorker = () => {
           const receiverId = data.receiverId.toString(); // Ensure it's a string
           eventName = `notification::${receiverId}`;
 
+          /*----------------------------
           // Try to emit to the user
           emitted = await socketService.emitToUser(
             receiverId,
@@ -224,6 +225,25 @@ export const startNotificationWorker = () => {
               linkId: data.linkId,
             }
           );
+          ----------------------------*/
+
+          emitted = await socketService.emitToUserForCalling(
+            receiverId,
+            eventName,
+            {
+              title: data.title,
+              // subTitle: data.subTitle,
+              senderId: data.senderId,
+              receiverId: data.receiverId,
+              receiverRole: data.receiverRole,
+              type: data.type,
+              idOfType: data.idOfType,
+              linkFor: data.linkFor,
+              linkId: data.linkId,
+            }
+          );
+
+          
 
           if (emitted) {
             logger.info(`🔔 Real-time notification sent to user ${receiverId}`);

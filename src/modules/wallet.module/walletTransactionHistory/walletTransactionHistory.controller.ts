@@ -27,8 +27,9 @@ export class WalletTransactionHistoryController extends GenericController<
     const filters =  omit(req.query, ['sortBy', 'limit', 'page', 'populate']); ;
     const options = pick(req.query, ['sortBy', 'limit', 'page', 'populate']);
 
-    console.log('filters : ', filters);
-    console.log('options : ', options);
+    // console.log('filters : ', filters);
+    // console.log('options : ', options);
+    options.sortBy='-createdAt';
 
     // ✅ Default values
     let populateOptions: (string | { path: string; select: string }[]) = [];

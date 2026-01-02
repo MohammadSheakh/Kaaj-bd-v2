@@ -305,14 +305,26 @@ export const validateAfterSuccessfulTransactionV2 = async (req: Request, res: Re
             }
         });
 
-        let startPrice :number = parseInt(updatedBooking?.startPrice); // TODO : MUST : Fix korte hobe 
+        // let startPrice :number = parseInt(updatedBooking?.startPrice); // TODO : MUST : Fix korte hobe 
         
+        console.log("paid amount by user ->>>> ",typeof amount, amount);
+        console.log("admins money ->>>> ",typeof updatedBooking?.adminPercentageOfStartPrice, updatedBooking?.adminPercentageOfStartPrice);
+
         // we need to add this money to admin's wallet
         // let adminsPercentOfStartPrice:number = parseFloat(updatedBooking?.adminPercentageOfStartPrice); 
+        
+        /*-------------
+        
         let adminsPercentOfStartPrice:number = ( parseFloat(amount) * parseFloat(updatedBooking?.adminPercentageOfStartPrice) ) / 100;
-
+        
         let finalAmountToAddProvidersWallet : number = parseFloat(amount) - parseFloat(adminsPercentOfStartPrice);
 
+        -----------------*/
+
+        let finalAmountToAddProvidersWallet : number = parseFloat(amount) - parseFloat(updatedBooking?.adminPercentageOfStartPrice);
+
+        console.log("finalAmountToAddProvidersWallet ->>>> ",typeof finalAmountToAddProvidersWallet, finalAmountToAddProvidersWallet);
+        
         const wallet : IWallet = await Wallet.findOne({ userId:updatedBooking.providerId });
         const balanceBeforeTransaction = wallet.amount;
         const balanceAfterTransaction = wallet.amount + finalAmountToAddProvidersWallet;
@@ -323,13 +335,18 @@ export const validateAfterSuccessfulTransactionV2 = async (req: Request, res: Re
 
         const adminWallet : IWallet = await Wallet.findOne({ userId : admin._id });
         const balanceBeforeTransactionForAdmin = adminWallet.amount;
-        const balanceAfterTransactionForAdmin = adminWallet.amount + adminsPercentOfStartPrice;
+        // const balanceAfterTransactionForAdmin = adminWallet.amount + adminsPercentOfStartPrice;
+        const balanceAfterTransactionForAdmin = adminWallet.amount + updatedBooking?.adminPercentageOfStartPrice;
+
+        
 
         const updatedAdminWallet :IWallet = await Wallet.findOneAndUpdate(
             { userId:admin._id },
             { $inc: { 
-                    amount: parseFloat(adminsPercentOfStartPrice),
-                    totalBalance: parseFloat(adminsPercentOfStartPrice) // we actually dont need to add this 
+                    // amount: parseFloat(adminsPercentOfStartPrice),
+                    // totalBalance: parseFloat(adminsPercentOfStartPrice) // we actually dont need to add this
+                    amount: parseFloat(updatedBooking?.adminPercentageOfStartPrice),
+                    //totalBalance: parseFloat(updatedBooking?.adminsPercentOfStartPrice) // we actually dont need to add this 
                 } 
             },
             { new: true }
@@ -341,7 +358,8 @@ export const validateAfterSuccessfulTransactionV2 = async (req: Request, res: Re
                 walletId:updatedAdminWallet._id,
                 paymentTransactionId: newPayment._id,
                 type : TWalletTransactionHistory.credit,
-                amount : parseFloat(adminsPercentOfStartPrice),
+                //amount : parseFloat(adminsPercentOfStartPrice),
+                amount : parseFloat(updatedBooking?.adminPercentageOfStartPrice),
                 currency : TCurrency.bdt,
                 status : TWalletTransactionStatus.completed,
                 referenceFor : TTransactionFor.ServiceBooking,

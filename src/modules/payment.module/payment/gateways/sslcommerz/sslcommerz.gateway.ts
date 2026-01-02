@@ -19,6 +19,8 @@ import { TBookingStatus } from "../../../../service.module/serviceBooking/servic
 import { sslConfig } from "../../../../../config/paymentGateways/sslcommerz.config";
 import { TTransactionFor } from "../../../../../constants/TTransactionFor";
 import { IUser } from "../../../../user.module/user/user.interface";
+import { IAdminPercentage } from "../../../../adminPercentage/adminPercentage.interface";
+import { AdminPercentage } from "../../../../adminPercentage/adminPercentage.model";
 
 // https://github.com/sslcommerz/SSLCommerz-NodeJS
 
@@ -66,6 +68,14 @@ export class SSLGateway implements PaymentGateway {
             // TODO : booking er user er shathe .. je payment korte chacche ..
             // take match korte hobe 
 
+            const adminPercentage:IAdminPercentage = await AdminPercentage.findOne({
+                isDeleted: false,
+            });
+
+            if(!adminPercentage){
+                throw new ApiError(StatusCodes.BAD_REQUEST, 'No Admin Percentage Found');
+            }
+
 
             if(!isBookingExist){
                 throw new ApiError(StatusCodes.NOT_FOUND, "Service Booking not found");
@@ -104,6 +114,11 @@ export class SSLGateway implements PaymentGateway {
             console.log('finalAmount :: ', finalAmount);
 
             isBookingExist.totalCost = finalAmount;
+
+            //---- New Requirement as per nazil vai
+            //---- after calculation this adminPercentageOfStartPrice will go to admins wallet .. 
+            // isBookingExist.adminPercentageOfStartPrice = ( parseFloat(finalAmount) * parseFloat(isBookingExist?.adminPercentageOfStartPrice) ) / 100
+            isBookingExist.adminPercentageOfStartPrice = ( parseFloat(finalAmount) * parseFloat(adminPercentage?.percentage) ) / 100
 
             // we dont need to create any booking here .. we can update totalCost
             await isBookingExist.save();

@@ -660,14 +660,20 @@ export class ServiceBookingController extends GenericController<
 
     let review: IReview | null = null;
 
+
+    console.log("role ->>> for /with-costs-summary", loggedInUser.role);
+
     // if provider then show review
     if(loggedInUser.role == TRole.provider){
+      console.log("role ->>> for /with-costs-summary", loggedInUser.role);
       review = await Review.findOne({
         serviceBookingId: req.params.id
       }).select(defaultExcludes).populate({
         path: 'userId',
         select: 'name profileImage'
       })
+
+      console.log("review ->>> for /with-costs-summary", review);
     }
 
     sendResponse(res, {

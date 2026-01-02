@@ -6,6 +6,7 @@ import { AuthValidation } from './auth.validations';
 import auth from '../../middlewares/auth';
 //@ts-ignore
 import multer from "multer";
+import { TRole } from '../../middlewares/roles';
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 const router = Router();
@@ -67,7 +68,8 @@ router.post(
   AuthController.verifyEmail,
 );
 
-router.post('/logout', AuthController.logout);
+// ------ we remove all device for this user .. actually we remove all FCM tokens for this user -----
+router.get('/logout', auth(TRole.common), AuthController.logout);
 
 router.post('/refresh-auth', AuthController.refreshToken);
 
