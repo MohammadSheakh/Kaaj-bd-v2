@@ -402,20 +402,20 @@ export const startNotificationWorker = () => {
             
             // Send message notification to personal room
             await socketService.emitToUserForCalling(
-            receiverId,
-            eventName,
-            {
-              title: data.title,
-              // subTitle: data.subTitle,
-              senderId: data.senderId,
-              receiverId: data.receiverId,
-              receiverRole: data.receiverRole,
-              type: data.type,
-              idOfType: data.idOfType,
-              linkFor: data.linkFor,
-              linkId: data.linkId,
-            }
-          );
+              receiverId,
+              eventName,
+              {
+                title: data.title,
+                // subTitle: data.subTitle,
+                senderId: data.senderId,
+                receiverId: data.receiverId,
+                receiverRole: data.receiverRole,
+                type: data.type,
+                idOfType: data.idOfType,
+                linkFor: data.linkFor,
+                linkId: data.linkId,
+              }
+            );
 
           try {
               // --- previous line logic was for one device .. now we design a system where user can have multiple device
@@ -433,7 +433,8 @@ export const startNotificationWorker = () => {
                 await sendPushNotificationV2(
                   userDevice.fcmToken,
                   {
-                    message : data.title,
+                    // message : data.title,
+                    text : data.title,
                     // image: userProfile?.profileImage, // may be we need to send this image
                     // conversationId: conversationId,
                   },
@@ -465,7 +466,8 @@ export const startNotificationWorker = () => {
                 await sendPushNotificationV2(
                   userDevice.fcmToken,
                   {
-                    message : data.title,
+                    // message : data.title,
+                    text : data.title,
                     // image: userProfile?.profileImage, // may be we need to send this image
                     // conversationId: conversationId,
                   },
