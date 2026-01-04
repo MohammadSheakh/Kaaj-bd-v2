@@ -27,7 +27,7 @@ export class ReviewService extends GenericService<
   async createV2(data:ICreateReview, userId: string) : Promise<IReview> {
     // Translate multiple properties dynamically
     const [reviewObj] : [IReview['review']]  = await Promise.all([
-      buildTranslatedField(data.review as string)
+      buildTranslatedField(data.review as string),
     ]);
     
     // let originalLanguage = await detectLanguage(data.review); // TODO : MUST .. uncomment this line to detect original language
