@@ -27,8 +27,8 @@ morgan.token('body-size', (req: Request) =>
 
 const getIpFormat = () =>
   config.environment === 'development' ? ':remote-addr - ' : '';
-const successResponseFormat = `${getIpFormat()}:method :url :status - :response-time ms user::user :userName - reqId::request-id`;
-const errorResponseFormat = `${getIpFormat()}:method :url :status - :response-time ms user::user :userName - reqId::request-id`;
+const successResponseFormat = `${getIpFormat()}:method :url :status - :response-time ms :userName - :user`;
+const errorResponseFormat = `${getIpFormat()}:method :url :status - :response-time ms :userName - :user`;
 
 const successHandler = morgan(successResponseFormat, {
   skip: (req: Request, res: Response) => res.statusCode >= 400,
