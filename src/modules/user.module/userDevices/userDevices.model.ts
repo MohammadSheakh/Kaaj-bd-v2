@@ -37,7 +37,7 @@ const UserDevicesSchema = new Schema<IUserDevices>(
       default: false,
     },
   },
-  { timestamps: true }
+  { timestamps: true } //test
 );
 
 UserDevicesSchema.plugin(paginate);
