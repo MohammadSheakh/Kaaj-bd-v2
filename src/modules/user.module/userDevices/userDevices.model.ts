@@ -6,7 +6,6 @@ import { UserDevicesType } from './userDevices.constant';
 
 const UserDevicesSchema = new Schema<IUserDevices>(
   {
-    
     userId: { //🔗
       type: Schema.Types.ObjectId,
       ref: 'User',
