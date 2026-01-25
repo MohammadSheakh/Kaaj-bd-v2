@@ -28,6 +28,14 @@ const UserDevicesSchema = new Schema<IUserDevices>(
       type: String,
       trim: true,
     },
+    ipAddress: { //🆕
+      type: String,
+      trim: true,
+    },
+    userAgent: { //🆕
+      type: String,
+      trim: true,
+    },
     lastActive: {
       type: Date,
     },
