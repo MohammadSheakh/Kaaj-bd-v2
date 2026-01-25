@@ -69,7 +69,12 @@ router.post(
 );
 
 // ------ we remove all device for this user .. actually we remove all FCM tokens for this user -----
-router.get('/logout', auth(TRole.common), AuthController.logout);
+// this endpoint has some serious issue 
+// TODO : NEED TO ADD ANOTHER API WITHOUT TOKEN ... 
+// NEED TO STORE DEVICE ID .. 
+router.get('/logout',
+  //  auth(TRole.common),
+  AuthController.logout);
 
 router.post('/refresh-auth', AuthController.refreshToken);
 
